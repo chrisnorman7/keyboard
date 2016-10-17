@@ -34,12 +34,12 @@ class NodeList(object): # Store nodes.
   self.play = play # True of False for whether or not nodes should be played when keys are pressed.
   self.nodes = dict() # Put all the nodes into this list.
   for k, v in keys.items(): # Could be expanded by just changing the list of keys.
-   n = self.type(simulation) # Create the wave generator.
+   n = self.type(Server) # Create the wave generator.
    n.mul.value = volume # Set the volume.
    n.state.value = lav.NodeStates.paused # Pause the node so it doesn't play when connected.
    n.frequency.value = difference * semi(v) # Set the frequency to be the frequency of the note which will be played.
    n.connect(0, fx, 0) # Connect it to the FX node.
-   n.connect_simulation(0) # Connect the dry signal to the simulation.
+   n.connect(0,Server) # Connect the dry signal to the Server.
    self.nodes[k] = n # Finally add the new node to the nodes dictionary.
 
 def semi(semitones, frequency = 440.0):
@@ -65,19 +65,21 @@ def get_nodes(value):
    res.append(n.nodes[value])
  return res
 
-simulation = lav.Simulation()
-simulation.set_output_device(-1)
+Server = lav.Server()
+Server.set_output_device()
 
-fx = lav.FdnReverbNode(simulation)
+fx = lav.FdnReverbNode(Server)
 fx.mul.value = 0.1
 fx.cutoff_frequency.value = 10000.0
 fx.density.value = 1.0
 fx.delay_modulation_frequency.value = 100.0
-fx.connect_simulation(0)
+fx.connect(0,Server)
 
 nodes = []
 nodes.append(NodeList(lav.SineNode, difference = 0.5))
-nodes.append(NodeList(lav.SquareNode))
+nodes.append(NodeList(lav.AdditiveSquareNode, difference = 0.5))
+nodes.append(NodeList(lav.AdditiveSawNode, difference = 0.5))
+nodes.append(NodeList(lav.AdditiveTriangleNode, difference = 0.5))
 
 window = pyglet.window.Window(caption = 'Keyboard')
 
@@ -94,7 +96,7 @@ def on_key_press(single, mods): # A key was pressed.
   for n in get_nodes(single):
    n.state.value = lav.NodeStates.playing
  else:
-  toggle_node_keys = [key.PAGEUP, key.PAGEDOWN]
+  toggle_node_keys = [key.F1, key.F2, key.F3, key.F4]
   if single in toggle_node_keys:
    node = nodes[toggle_node_keys.index(single)]
    node.play = not node.play
